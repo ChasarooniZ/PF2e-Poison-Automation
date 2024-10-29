@@ -55,12 +55,13 @@ function translatePotionHTML(html) {
   result.maxDuration.text = parseMaxDuration(
     current[0].match(getBetweenRegex(maxDuration, endBold))
   );
-  console.log({result})
+  console.log({ result })
   //Update remaining text
   console.log(current)
-  current = current.split(endParagraph)[1];
-
-  const stages = current.split(startParagraph);
+  current = current.map(line => line.split("<p>")[1]).filter(line => line !== '');
+  current.shift();
+  const stages = current;
+  console.log(stages)
   let stageNum = 1;
   for (stage of stages) {
     const currStage = {
@@ -68,10 +69,9 @@ function translatePotionHTML(html) {
       conditions: [],
       damage: [],
     };
-    currStage.text = stage.match(getBetweenRegex(endBold, endParagraph)).trim();
-    currStage.damage = currStage.text.matchAll(/@Damage\[([^\]]+)\]/);
-    currStage.conditions = currStage.text
-      .matchAll(/@UUID\[[^\}]+\}/)
+    currStage.text = stage.split(endBold)[1]?.trim();
+    currStage.damage = [...currStage.text.matchAll(/@Damage\[([^\]]+)\]/g)];
+    currStage.conditions = [...currStage.text.matchAll(/@UUID\[[^\}]+\}/g)]
       .map((c) => ({
         text: c,
         uuid: c.match(/(?<=@UUID\[)[^\]]+(?=\])/)[0],
@@ -79,7 +79,7 @@ function translatePotionHTML(html) {
       }));
 
     stageNum++;
-    result.stages(currStage);
+    result.stages.push(currStage);
   }
   console.log(result)
 }
