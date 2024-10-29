@@ -46,7 +46,7 @@ function translatePotionHTML(html) {
   result.save.text = current
     .match(getBetweenRegex(savingText, endParagraph))[0]
     .trim();
-  result.save = getInlineCheckLinks(result.save.text, 'inline-check.with-repost').map(check => ({ label: check?.dataset?.pf2eLabel, check: check?.dataset?.pf2Check, dc: check?.dataset?.pf2Dc, traits: check?.dataset?.pf2Traits }))[0]
+  result.save = getInlineCheckLinks(result.save.text, 'inline-check.with-repost').map(check => ({ label: check?.dataset?.pf2Label, check: check?.dataset?.pf2Check, dc: check?.dataset?.pf2Dc, traits: check?.dataset?.pf2Traits }))[0]
   //Update remaining text
   current = current.split(savingText)[1].split(endParagraph);
   console.log(current);
