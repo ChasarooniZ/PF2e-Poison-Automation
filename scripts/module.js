@@ -51,17 +51,19 @@ function translatePotionHTML(html) {
     .trim();
   //Update remaining text
   current = current.split(savingText)[1].split(endParagraph);
-  console.log(current)
+  console.log(current);
   result.maxDuration.text = parseMaxDuration(
     current[0].match(getBetweenRegex(maxDuration, endBold))
   );
-  console.log({ result })
+  console.log({ result });
   //Update remaining text
-  console.log(current)
-  current = current.map(line => line.split("<p>")[1]).filter(line => line !== '');
+  console.log(current);
+  current = current
+    .map((line) => line.split("<p>")[1])
+    .filter((line) => !!line);
   current.shift();
   const stages = current;
-  console.log(stages)
+  console.log(stages);
   let stageNum = 1;
   for (stage of stages) {
     const currStage = {
@@ -70,18 +72,21 @@ function translatePotionHTML(html) {
       damage: [],
     };
     currStage.text = stage.split(endBold)[1]?.trim();
-    currStage.damage = [...currStage.text.matchAll(/@Damage\[([^\]]+)\]/g)];
-    currStage.conditions = [...currStage.text.matchAll(/@UUID\[[^\}]+\}/g)]
-      .map((c) => ({
-        text: c,
-        uuid: c.match(/(?<=@UUID\[)[^\]]+(?=\])/)[0],
-        value: c.match(/(?<=\{)[^\}]+(?=\})/).match(/(\d+)/)[0],
-      }));
-
+    currStage.damage = getInlineCheckLinks(stage, "inline-roll.roll").map(
+      (dmg) => ({
+        formula: dmg?.dataset?.formula,
+        flavor: dmg?.dataset?.flavor,
+        traits: dmg?.dataset?.traits,
+      })
+    );
+    currStage.conditions = getInlineCheckLinks(stage, "content-link")
+      .filter((i) => i?.dataset?.pack === "pf2e.conditionitems")
+      .map((i) => i?.dataset?.itemUuid);
+    currStage.duration = extractNumberAndUnit(stage);
     stageNum++;
     result.stages.push(currStage);
   }
-  console.log(result)
+  console.log(result);
 }
 function parseMaxDuration(text) {
   if (text === null) return null;
@@ -96,4 +101,45 @@ function getBetweenRegex(startText, endText) {
 
   // Create the regex
   return new RegExp(`${escapedStart}(.*?)${escapedEnd}`, "s");
+}
+
+/**
+ * Handle the following:
+ * - 'inline-check.with-repost' - Checks
+ * - 'inline-roll.roll' - Damage
+ * - 'content-link' - Check for this for conditions, also add a check for the following data
+ *    - pack = 'pf2e.conditionitems'
+ */
+
+function getInlineCheckLinks(htmlString, type = "inline-check") {
+  // Create a temporary DOM element to parse the HTML string
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = htmlString;
+
+  // Use querySelectorAll to find all <a> elements with class "inline-check"
+  const inlineCheckLinks = tempDiv.querySelectorAll(`a.${type}`);
+
+  // Convert the NodeList to an array
+  const linksArray = Array.from(inlineCheckLinks);
+
+  return linksArray;
+}
+
+function extractNumberAndUnit(inputString) {
+  // Regular expression to match the pattern (number unit) at the end of the string
+  const regex = /\((\d+)\s+(\w+)\)$/;
+
+  // Execute the regex on the input string
+  const match = inputString.match(regex);
+
+  if (match) {
+    // If there's a match, return an object with the number and unit
+    return {
+      number: parseInt(match[1], 10),
+      unit: match[2],
+    };
+  } else {
+    // If no match is found, return null or an appropriate value
+    return null;
+  }
 }
